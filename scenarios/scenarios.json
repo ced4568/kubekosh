@@ -3986,7 +3986,7 @@
       {
         "title": "Create the PriorityClass",
         "body": "PriorityClass is a cluster-scoped resource (not namespaced). Higher value = higher priority.",
-        "command": "cat <<EOF | kubectl apply -f -\napiVersion: scheduling.k8s.io/v1\nkind: PriorityClass\nmetadata:\n  name: high-priority\nvalue: 1000000\ndescription: \"High priority workloads\"\nEOF"
+        "command": "cat <<EOF | kubectl apply -f -\napiVersion: scheduling.k8s.io/v1\nkind: PriorityClass\nmetadata:\n  name: high-priority\nvalue: 1000000\nglobalDefault: false\ndescription: \"High priority workloads\"\nEOF"
       },
       {
         "title": "Reference PriorityClass in a Pod",
@@ -4007,6 +4007,12 @@
           "description": "PriorityClass value is 1000000",
           "command": "kubectl get priorityclass high-priority -o jsonpath='{.value}'",
           "expected_output": "1000000",
+          "match": "exact"
+        },
+        {
+          "description": "globalDefault value is false",
+          "command": "kubectl get priorityclass high-priority -o jsonpath='{.globalDefault}' | grep -v '^$' || echo false",
+          "expected_output": "false",
           "match": "exact"
         },
         {
