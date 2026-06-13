@@ -1363,8 +1363,8 @@
     "hints": [
       {
         "title": "CronJob manifest",
-        "body": "Use `kubectl create cronjob` or apply a manifest. The schedule uses standard cron syntax.",
-        "command": "kubectl create cronjob date-printer --image=busybox:1.36 --schedule='* * * * *' -- date"
+        "body": "Use `kubectl create cronjob` and then patch with `successfulJobsHistoryLimit: 3`, or create a cronjob with a manifest. The schedule uses standard cron syntax.",
+        "command": "cat <<EOF | kubectl apply -f -\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: date-printer\nspec:\n  schedule: \"* * * * *\"\n  successfulJobsHistoryLimit: 3\n  jobTemplate:\n    spec:\n      template:\n        spec:\n          restartPolicy: OnFailure\n          containers:\n          - name: printer\n            image: busybox:1.36\n            command: [\"date\"]\nEOF"
       }
     ],
     "setup_commands": [],
@@ -1383,10 +1383,16 @@
           "match": "exact"
         },
         {
-          "description": "CronJob uses busybox image",
+          "description": "CronJob uses busybox:1.36 image",
           "command": "kubectl get cronjob date-printer -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}'",
-          "expected_output": "busybox",
-          "match": "contains"
+          "expected_output": "busybox:1.36",
+          "match": "exact"
+        },
+        {
+          "description": "CronJob has successfulJobsHistoryLimit: 3",
+          "command": "kubectl get cronjob date-printer -o jsonpath='{.spec.successfulJobsHistoryLimit}'",
+          "expected_output": "3",
+          "match": "exact"
         }
       ]
     },
