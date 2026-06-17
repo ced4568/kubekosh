@@ -137,6 +137,9 @@ alias klogs='kubectl logs'
 kns() { kubectl config set-context --current --namespace="$1"; }
 kctx() { kubectl config use-context "$1"; }
 
+# Load bash-completion framework
+[ -f /usr/share/bash-completion/bash_completion ] && source /usr/share/bash-completion/bash_completion
+
 source <(kubectl completion bash) 2>/dev/null || true
 complete -F __start_kubectl k 2>/dev/null || true
 
