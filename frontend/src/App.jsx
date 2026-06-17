@@ -103,7 +103,10 @@ export default function App() {
     setLoading(true)
     setActiveId(null)
     setScenario(null)
-    const url = `/api/scenarios?bundle=${activeBundleId}`
+    // If an exam session is active, fetch only that session's scenarios (pre-shuffled)
+    const url = examSession?.id
+      ? `/api/scenarios?session=${examSession.id}`
+      : `/api/scenarios?bundle=${activeBundleId}`
     fetch(url)
       .then(r => r.json())
       .then(data => {
@@ -112,7 +115,7 @@ export default function App() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [activeBundleId])
+  }, [activeBundleId, examSession?.id])
 
   // ── Load full scenario when selected — teardown previous, load new ─────────
   useEffect(() => {
@@ -137,9 +140,12 @@ export default function App() {
   }, [activeId])
 
   const refreshProgress = useCallback(async () => {
+    const scenarioUrl = examSession?.id
+      ? `/api/scenarios?session=${examSession.id}`
+      : `/api/scenarios?bundle=${activeBundleId}`
     const [bundleData, scenarioData] = await Promise.all([
       fetch('/api/bundles').then(r => r.json()),
-      fetch(`/api/scenarios?bundle=${activeBundleId}`).then(r => r.json()),
+      fetch(scenarioUrl).then(r => r.json()),
     ])
     setBundles(bundleData)
     setScenarios(scenarioData)
@@ -160,13 +166,13 @@ export default function App() {
   }, [activeBundleId, activeId, examSession])
 
   // ── Exam actions ──────────────────────────────────────────────────────────
-  const startExam = useCallback(async (bundleId, customMinutes) => {
+  const startExam = useCallback(async (bundleId, customMinutes, customScenarioCount) => {
     const res = await fetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bundleId, examMinutes: customMinutes }),
+      body: JSON.stringify({ bundleId, examMinutes: customMinutes, scenarioCount: customScenarioCount }),
     }).then(r => r.json())
-    // refresh to get scenarioCount
+    // refresh to get scenario_ids, scenarioCount
     const active = await fetch('/api/sessions/active').then(r => r.json())
     setExamSession(active)
     setActiveBundleId(bundleId)
@@ -257,6 +263,13 @@ export default function App() {
   const activeBundle = bundles.find(b => b.id === activeBundleId) || null
   const isMcq = scenario?.type === 'mcq'
 
+  // In exam mode: scenarios are already pre-filtered and ordered by the session API
+  const examScenarios = scenarios
+
+  // Total weight of the exam's selected scenarios (for % display in ScenarioPanel)
+  const totalExamWeight = (!!examSession ? examScenarios : scenarios)
+    .reduce((sum, s) => sum + (s.weight || 0), 0)
+
   return (
     <div className={styles.app}>
       <Header clusterReady={clusterReady} onShowHistory={() => setShowHistory(true)} />
@@ -290,7 +303,7 @@ export default function App() {
       <div className={styles.body}>
         {/* Sidebar */}
         <Sidebar
-          scenarios={scenarios}
+          scenarios={!!examSession ? examScenarios : scenarios}
           activeId={activeId}
           onSelect={setActiveId}
           loading={loading}
@@ -301,6 +314,7 @@ export default function App() {
           onProgressUpdate={refreshProgress}
           isExamMode={!!examSession}
           examProgress={examProgress}
+          totalExamWeight={totalExamWeight}
         />
 
         {/* Sidebar resize handle */}
@@ -315,6 +329,7 @@ export default function App() {
               onScenarioStart={handleScenarioStart}
               isExamMode={!!examSession}
               examProgress={examProgress}
+              totalExamWeight={totalExamWeight}
             />
           </div>
 
@@ -350,9 +365,9 @@ export default function App() {
       {examModalBundle && (
         <ExamStartModal
           bundle={examModalBundle}
-          onStart={mins => {
+          onStart={(mins, count) => {
             setExamModalBundle(null)
-            startExam(examModalBundle.id, mins)
+            startExam(examModalBundle.id, mins, count)
           }}
           onCancel={() => setExamModalBundle(null)}
         />

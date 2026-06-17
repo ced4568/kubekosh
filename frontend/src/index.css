@@ -19,6 +19,8 @@
   --red-dim:    rgba(255,107,107,0.10);
   --purple:     #9775fa;
   --purple-dim: rgba(151,117,250,0.10);
+  --teal:       #2dd4bf;
+  --teal-dim:   rgba(45,212,191,0.11);
 
   --text:       #e2e8f4;
   --text-2:     #8899b8;
@@ -52,6 +54,8 @@
   --red-dim:    rgba(220,38,38,0.10);
   --purple:     #7c3aed;
   --purple-dim: rgba(124,58,237,0.10);
+  --teal:       #0d9488;
+  --teal-dim:   rgba(13,148,136,0.11);
 
   --text:       #111827;
   --text-2:     #374151;

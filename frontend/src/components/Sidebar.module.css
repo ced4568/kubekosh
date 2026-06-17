@@ -70,6 +70,22 @@
   padding: 8px 0;
 }
 
+.flatList {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.flatList .item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-bottom: 1px solid var(--border);
+}
+
+
 /* Filters */
 .filterBar {
   display: flex;
@@ -337,6 +353,18 @@
 }
 
 @keyframes slideIn { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+
+.examWeightBadge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--teal-dim);
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, transparent);
+  letter-spacing: 0.3px;
+}
 
 .examCompletedTag {
   font-family: var(--mono);

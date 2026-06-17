@@ -76,6 +76,19 @@
   margin-left: auto;
 }
 
+.examWeight {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--teal);
+  background: var(--teal-dim);
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, transparent);
+  margin-left: auto;
+}
+
+
 .scenarioTitle {
   font-size: 19px;
   font-weight: 800;

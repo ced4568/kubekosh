@@ -24,7 +24,7 @@ async function resetProgress(scope, opts) {
   })
 }
 
-export default function ScenarioPanel({ scenario, onProgressUpdate, onScenarioStart, isExamMode, examProgress }) {
+export default function ScenarioPanel({ scenario, onProgressUpdate, onScenarioStart, isExamMode, examProgress, totalExamWeight }) {
   const [tab, setTab] = useState('problem')
   const [setupState, setSetupState] = useState('idle') // idle | running | done | error
   const [validating, setValidating] = useState(false)
@@ -208,6 +208,11 @@ export default function ScenarioPanel({ scenario, onProgressUpdate, onScenarioSt
           )}
           <span className={styles.typeTag}>{scenario.type === 'mcq' ? 'Multiple Choice' : 'Hands-on Task'}</span>
           {!isExamMode && <span className={styles.weight}>{scenario.weight} pts</span>}
+          {isExamMode && totalExamWeight > 0 && (
+            <span className={styles.examWeight}>
+              {Math.round((scenario.weight / totalExamWeight) * 100)}% weight
+            </span>
+          )}
         </div>
         <div className={styles.titleRow}>
           <div className={styles.scenarioTitle}>{scenario.title}</div>

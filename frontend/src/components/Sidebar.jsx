@@ -16,7 +16,7 @@ export default function Sidebar({
   scenarios, activeId, onSelect, loading,
   collapsed, onToggleCollapse, width,
   activeBundleId, onProgressUpdate,
-  isExamMode, examProgress,
+  isExamMode, examProgress, totalExamWeight,
 }) {
   const [filterDiff, setFilterDiff] = useState('All')
   const [filterType, setFilterType] = useState('All')
@@ -106,21 +106,19 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Filter bar */}
-      {!collapsed && (
+      {/* Filter bar — hidden in exam mode */}
+      {!collapsed && !isExamMode && (
         <div className={styles.filterBar}>
-          {!isExamMode && (
-            <select 
-              value={filterDiff} 
-              onChange={e => setFilterDiff(e.target.value)}
-              className={`${styles.selectFilter} ${filterDiff !== 'All' ? styles[DIFF_COLOR[filterDiff]] : ''}`}
-            >
-              <option value="All">All Difficulties</option>
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-          )}
+          <select 
+            value={filterDiff} 
+            onChange={e => setFilterDiff(e.target.value)}
+            className={`${styles.selectFilter} ${filterDiff !== 'All' ? styles[DIFF_COLOR[filterDiff]] : ''}`}
+          >
+            <option value="All">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
           <select 
             value={filterType} 
             onChange={e => setFilterType(e.target.value)}
@@ -144,7 +142,42 @@ export default function Sidebar({
             </div>
           )}
 
-          {!loading && Object.entries(groups).map(([cat, items]) => {
+          {!loading && isExamMode && (
+            /* ── Exam mode: flat numbered list ─────────────────── */
+            <div className={styles.flatList}>
+              {scenarios.map((s, idx) => {
+                const examDone = examProgress?.[s.id]?.status === 'completed'
+                const active = s.id === activeId
+                const hasAttempts = (examProgress?.[s.id]?.attempts || 0) > 0
+                return (
+                  <button
+                    key={s.id}
+                    className={`${styles.item} ${active ? styles.active : ''} ${examDone ? styles.done : ''}`}
+                    onClick={() => onSelect(s.id)}
+                  >
+                    <div className={styles.itemTop}>
+                      <span className={styles.itemNum}>{idx + 1}</span>
+                      <span className={styles.typeIcon}>{TYPE_ICON[s.type] || '•'}</span>
+                      <span className={styles.itemTitle}>{s.title}</span>
+                    </div>
+                    <div className={styles.itemMeta}>
+                      <span className={`${styles.type} ${styles[s.type]}`}>{s.type.toUpperCase()}</span>
+                      {totalExamWeight > 0 && (
+                        <span className={styles.examWeightBadge}>
+                          {Math.round((s.weight / totalExamWeight) * 100)}% wt
+                        </span>
+                      )}
+                      {examDone && (
+                        <span className={styles.examCompletedTag}>✓ Completed</span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {!loading && !isExamMode && Object.entries(groups).map(([cat, items]) => {
             const catDone = items.filter(s => s.progress?.status === 'completed').length
             const isOpen = open[cat] !== false
             const hasCatProgress = items.some(s => s.progress?.attempts > 0)
@@ -158,9 +191,7 @@ export default function Sidebar({
                   </div>
                   <div className={styles.accordionRight}>
                     <span className={styles.catCount}>
-                      {isExamMode
-                        ? `${items.filter(s => examProgress?.[s.id]?.status === 'completed').length}/${items.length}`
-                        : `${catDone}/${items.length}`}
+                      {`${catDone}/${items.length}`}
                     </span>
                     {hasCatProgress && (
                       <button
@@ -180,24 +211,20 @@ export default function Sidebar({
                 {isOpen && (
                   <div className={styles.itemsBox}>
                     {items.map(s => {
-                      const examDone = isExamMode && examProgress?.[s.id]?.status === 'completed'
-                      const done = !isExamMode && s.progress?.status === 'completed'
+                      const done = s.progress?.status === 'completed'
                       const active = s.id === activeId
-                      const hasAttempts = isExamMode
-                        ? (examProgress?.[s.id]?.attempts || 0) > 0
-                        : s.progress?.attempts > 0
+                      const hasAttempts = s.progress?.attempts > 0
                       return (
                         <button
                           key={s.id}
-                          className={`${styles.item} ${active ? styles.active : ''} ${(done || examDone) ? styles.done : ''}`}
+                          className={`${styles.item} ${active ? styles.active : ''} ${done ? styles.done : ''}`}
                           onClick={() => onSelect(s.id)}
                         >
                           <div className={styles.itemTop}>
                             <span className={styles.itemNum}>{scenarioIndex[s.id]}</span>
                             <span className={styles.typeIcon}>{TYPE_ICON[s.type] || '•'}</span>
                             <span className={styles.itemTitle}>{s.title}</span>
-                            {(done || examDone) && <span className={styles.checkmark}>✓</span>}
-                            {/* Per-scenario reset — shown when item has attempts */}
+                            {done && <span className={styles.checkmark}>✓</span>}
                             {hasAttempts && (
                               <button
                                 className={styles.itemResetBtn}
@@ -212,16 +239,11 @@ export default function Sidebar({
                             )}
                           </div>
                           <div className={styles.itemMeta}>
-                            {!isExamMode && (
-                              <span className={`${styles.diff} ${styles[DIFF_COLOR[s.difficulty]]}`}>
-                                {s.difficulty}
-                              </span>
-                            )}
+                            <span className={`${styles.diff} ${styles[DIFF_COLOR[s.difficulty]]}`}>
+                              {s.difficulty}
+                            </span>
                             <span className={`${styles.type} ${styles[s.type]}`}>{s.type.toUpperCase()}</span>
-                            {!isExamMode && <span className={styles.weight}>{s.weight}pt</span>}
-                            {isExamMode && examDone && (
-                              <span className={styles.examCompletedTag}>✓ Completed</span>
-                            )}
+                            <span className={styles.weight}>{s.weight}pt</span>
                           </div>
                         </button>
                       )

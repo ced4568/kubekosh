@@ -64,9 +64,20 @@ function getDb() {
       status        TEXT NOT NULL DEFAULT 'active',
       exam_minutes  INTEGER NOT NULL DEFAULT 120,
       duration_secs INTEGER,
-      snapshot      TEXT
+      snapshot      TEXT,
+      scenario_ids  TEXT
     )
   `);
+
+  // Migrate: add scenario_ids column if missing
+  try {
+    const cols = _db.prepare("PRAGMA table_info(sessions)").all().map(c => c.name);
+    if (!cols.includes('scenario_ids')) {
+      _db.exec(`ALTER TABLE sessions ADD COLUMN scenario_ids TEXT`);
+    }
+  } catch (e) {
+    console.error('Failed to migrate sessions table:', e.message);
+  }
 
   // Separate exam-session progress table — tracks completions per session
   _db.exec(`
@@ -249,20 +260,35 @@ app.post('/api/progress/reset', (req, res) => {
 
 // ── Exam sessions ─────────────────────────────────────────────────────────────
 
+// Fisher-Yates shuffle (returns a new array)
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // POST /api/sessions — start a new exam session
 app.post('/api/sessions', (req, res) => {
-  const { bundleId, examMinutes } = req.body;
+  const { bundleId, examMinutes, scenarioCount } = req.body;
   const bundle = loadBundles().find(b => b.id === bundleId);
   if (!bundle) return res.status(404).json({ error: 'Bundle not found' });
   const db = getDb();
   const mins = Math.max(5, Math.min(300, Number(examMinutes) || bundle.exam_minutes || 120));
+  // Shuffle and optionally slice scenario IDs
+  const allIds = bundle.scenario_ids || [];
+  const count = Math.max(1, Math.min(allIds.length, Number(scenarioCount) || allIds.length));
+  const sessionScenarioIds = shuffle(allIds).slice(0, count);
   // Abandon any existing active session
   db.prepare(`UPDATE sessions SET status='abandoned', submitted_at=datetime('now')
               WHERE status='active'`).run();
   const id = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  db.prepare(`INSERT INTO sessions (id, bundle_id, started_at, status, exam_minutes)
-              VALUES (?, ?, datetime('now'), 'active', ?)`).run(id, bundleId, mins);
-  res.json({ id, bundleId, status: 'active', exam_minutes: mins });
+  db.prepare(`INSERT INTO sessions (id, bundle_id, started_at, status, exam_minutes, scenario_ids)
+              VALUES (?, ?, datetime('now'), 'active', ?, ?)`)
+    .run(id, bundleId, mins, JSON.stringify(sessionScenarioIds));
+  res.json({ id, bundleId, status: 'active', exam_minutes: mins, scenario_ids: sessionScenarioIds });
 });
 
 // GET /api/sessions/active — get the current active session
@@ -270,13 +296,18 @@ app.get('/api/sessions/active', (req, res) => {
   const db = getDb();
   const session = db.prepare(`SELECT * FROM sessions WHERE status='active' ORDER BY started_at DESC LIMIT 1`).get();
   if (!session) return res.json(null);
-  const bundle = loadBundles().find(b => b.id === session.bundle_id);
-  const scenarioIds = bundle?.scenario_ids || [];
-  // Count completions from exam_progress (exam-specific), not global progress
+  // Use session-specific scenario_ids (shuffled/sliced at start time)
+  let scenarioIds = [];
+  try { scenarioIds = session.scenario_ids ? JSON.parse(session.scenario_ids) : []; } catch (_) {}
+  if (!scenarioIds.length) {
+    // Fallback for sessions created before this feature
+    const bundle = loadBundles().find(b => b.id === session.bundle_id);
+    scenarioIds = bundle?.scenario_ids || [];
+  }
   const completed = db.prepare(
     `SELECT COUNT(*) as cnt FROM exam_progress WHERE session_id=? AND status='completed'`
   ).get(session.id)?.cnt || 0;
-  res.json({ ...session, scenarioCount: scenarioIds.length, completedCount: completed });
+  res.json({ ...session, scenario_ids: scenarioIds, scenarioCount: scenarioIds.length, completedCount: completed });
 });
 
 // GET /api/sessions/:id/exam-progress — return per-scenario progress for an exam session
@@ -337,7 +368,11 @@ app.post('/api/sessions/:id/submit', (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
   const bundle = loadBundles().find(b => b.id === session.bundle_id);
   const scenarios = loadScenarios();
-  const bundleScenarios = scenarios.filter(s => bundle?.scenario_ids?.includes(s.id));
+  // Use session-specific scenario IDs (preserves shuffle order)
+  let sessionIds = [];
+  try { sessionIds = session.scenario_ids ? JSON.parse(session.scenario_ids) : []; } catch (_) {}
+  if (!sessionIds.length) sessionIds = bundle?.scenario_ids || [];
+  const bundleScenarios = sessionIds.map(id => scenarios.find(s => s.id === id)).filter(Boolean);
 
   // Build snapshot from exam_progress (exam-specific), falling back to 'not_started'
   const examProgressRows = db.prepare(`SELECT * FROM exam_progress WHERE session_id=?`).all(req.params.id);
@@ -449,17 +484,34 @@ app.get('/api/bundles', (req, res) => {
   res.json(result);
 });
 
-// GET /api/scenarios — list scenarios; optional ?bundle=<id> filter
+// GET /api/scenarios — list scenarios; optional ?bundle=<id> and ?session=<id> filter
 app.get('/api/scenarios', (req, res) => {
-  const scenarios = loadScenarios();
-  const progress  = loadProgress();
-  const { bundle } = req.query;
+  const scenarios = loadScenarios()
+  const progress  = loadProgress()
+  const { bundle, session: sessionId } = req.query
 
-  let filtered = scenarios;
+  // Session-scoped: return only session scenario_ids in their shuffled order
+  if (sessionId) {
+    const db = getDb()
+    const session = db.prepare(`SELECT scenario_ids FROM sessions WHERE id=?`).get(sessionId)
+    let sessionIds = []
+    try { sessionIds = session?.scenario_ids ? JSON.parse(session.scenario_ids) : [] } catch (_) {}
+    const list = sessionIds
+      .map(id => scenarios.find(s => s.id === id))
+      .filter(Boolean)
+      .map(s => ({
+        id: s.id, title: s.title, category: s.category,
+        difficulty: s.difficulty, type: s.type, weight: s.weight,
+        progress: progress[s.id] || { status: 'not_started', attempts: 0 }
+      }))
+    return res.json(list)
+  }
+
+  let filtered = scenarios
   if (bundle) {
-    const bundles = loadBundles();
-    const b = bundles.find(x => x.id === bundle);
-    if (b) filtered = scenarios.filter(s => b.scenario_ids.includes(s.id));
+    const bundles = loadBundles()
+    const b = bundles.find(x => x.id === bundle)
+    if (b) filtered = scenarios.filter(s => b.scenario_ids.includes(s.id))
   }
 
   const list = filtered.map(s => ({
@@ -470,9 +522,9 @@ app.get('/api/scenarios', (req, res) => {
     type: s.type,
     weight: s.weight,
     progress: progress[s.id] || { status: 'not_started', attempts: 0 }
-  }));
-  res.json(list);
-});
+  }))
+  res.json(list)
+})
 
 // GET /api/scenarios/:id — full scenario detail
 app.get('/api/scenarios/:id', (req, res) => {
