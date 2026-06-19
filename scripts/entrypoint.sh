@@ -92,7 +92,23 @@ done
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 OK "Cluster node is Ready"
 
-# Phase 3: wait for flannel CNI to write its subnet config.
+# Phase 3: on resource-constrained hosts k3s can briefly flap right after
+# node Ready. Poll for 10s to confirm the API stays up.
+LOG "Verifying API server stability..."
+for i in $(seq 1 5); do
+  sleep 2
+  if ! kubectl get nodes &>/dev/null; then
+    LOG "API server not yet stable (attempt $i/5), waiting..."
+  fi
+done
+if ! kubectl get nodes &>/dev/null; then
+  ERR "API server became unavailable after node Ready. Aborting."
+  tail -20 /var/log/k3s.log >&2
+  exit 1
+fi
+OK "API server is stable"
+
+# Phase 4: wait for flannel CNI to write its subnet config.
 # Pods scheduled before flannel is ready get FailedCreatePodSandBox warnings
 # (missing /run/flannel/subnet.env). Waiting here avoids that noise.
 for i in $(seq 1 30); do
@@ -156,17 +172,50 @@ BASHRC
 
 OK "Shell configured"
 
-# ── 5. Start Node.js API server ──────────────────────────────────────────────
+# ── 5. k3s watchdog — restart k3s if it crashes ─────────────────────────────
+# This loop detects if k3s has crashed and restarts it, keeping the cluster available.
+watchdog_k3s() {
+  while true; do
+    sleep 15
+    if ! kill -0 "$K3S_PID" 2>/dev/null; then
+      LOG "⚠ k3s process died (PID $K3S_PID), restarting..."
+      k3s server \
+        --disable=traefik \
+        --disable=servicelb \
+        --write-kubeconfig-mode=644 \
+        --node-name=k8s-lab \
+        --snapshotter=native \
+        --kubelet-arg=cgroups-per-qos=false \
+        --kubelet-arg=enforce-node-allocatable="" \
+        &>>/var/log/k3s.log &
+      K3S_PID=$!
+      LOG "k3s restarted (new PID $K3S_PID), waiting for API..."
+      for i in $(seq 1 30); do
+        sleep 2
+        if kubectl get nodes &>/dev/null; then
+          # Re-sync the kubeconfig in case it was regenerated
+          cp /etc/rancher/k3s/k3s.yaml /root/.kube/config 2>/dev/null || true
+          OK "k3s recovered successfully"
+          break
+        fi
+      done
+    fi
+  done
+}
+watchdog_k3s &
+WATCHDOG_PID=$!
+
+# ── 6. Start Node.js API server ──────────────────────────────────────────────
 LOG "Starting API server..."
 cd /app/backend && node server.js &>/var/log/api.log &
 OK "API server started (port 4000)"
 
-# ── 6. Browser terminal ──────────────────────────────────────────────────────
+# ── 7. Browser terminal ──────────────────────────────────────────────────────
 # Terminal is served via WebSocket at /shell-ws by the Node.js API server
 # using node-pty — no external ttyd binary needed.
 
 
-# ── 7. Start nginx reverse proxy ────────────────────────────────────────────
+# ── 8. Start nginx reverse proxy ────────────────────────────────────────────
 LOG "Starting nginx proxy..."
 nginx -g 'daemon off;' &>/var/log/nginx.log &
 OK "nginx started (port 80)"
@@ -174,6 +223,7 @@ OK "nginx started (port 80)"
 # ── 8. Keep Alive & Graceful Shutdown ────────────────────────────────────────
 cleanup() {
   LOG "Caught signal, shutting down KubeKosh..."
+  kill -TERM "$WATCHDOG_PID" 2>/dev/null || true
   kill -TERM "$K3S_PID" 2>/dev/null || true
   kill $(jobs -p) 2>/dev/null || true
   exit 0
