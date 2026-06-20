@@ -1,0 +1,44 @@
+{
+  "id": "node-cordon-basics",
+  "title": "Cordoning and Uncordoning a Node",
+  "category": "Cluster Management",
+  "difficulty": "Easy",
+  "type": "task",
+  "weight": 4,
+  "description": "## Cordoning and Uncordoning a Node\n\n`kubectl cordon` marks a node as **unschedulable** — the node continues running existing workloads but the scheduler will not place new pods on it. This is useful before maintenance windows.\n\n`kubectl uncordon` reverses the cordon, making the node schedulable again.\n\n**Your task:**\n\n1. Find the name of the cluster node using `kubectl get nodes`\n2. **Cordon** the node\n3. Verify the node shows `SchedulingDisabled` in its status\n4. **Uncordon** the node to restore it to normal\n\n```bash\n# Check node status:\nkubectl get nodes\n\n# Cordon:\nkubectl cordon <node-name>\n\n# Uncordon:\nkubectl uncordon <node-name>\n```",
+  "hints": [
+    {
+      "title": "Find the node name",
+      "body": "In this single-node cluster, there is exactly one node. Use kubectl get nodes to find its name.",
+      "command": "kubectl get nodes -o jsonpath='{.items[0].metadata.name}'"
+    },
+    {
+      "title": "Cordon and uncordon using a variable",
+      "body": "Store the node name in a variable for convenience, then cordon and uncordon it.",
+      "command": "NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}') && kubectl cordon $NODE && kubectl uncordon $NODE"
+    }
+  ],
+  "setup_commands": [],
+  "validation": {
+    "commands": [
+      {
+        "description": "Node is schedulable (not cordoned)",
+        "command": "kubectl get nodes -o jsonpath='{.items[0].spec.unschedulable}' 2>/dev/null || echo 'false'",
+        "expected_output": "false",
+        "match": "contains"
+      },
+      {
+        "description": "Node is in Ready state",
+        "command": "kubectl get nodes -o jsonpath='{.items[0].status.conditions[?(@.type==\"Ready\")].status}'",
+        "expected_output": "True",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl uncordon $(kubectl get nodes -o jsonpath='{.items[0].metadata.name}') 2>/dev/null || true"
+    }
+  ]
+}

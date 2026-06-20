@@ -1,0 +1,63 @@
+{
+  "id": "sort-by-basics",
+  "title": "Sorting kubectl Output",
+  "category": "Core Concepts",
+  "difficulty": "Easy",
+  "type": "task",
+  "weight": 3,
+  "description": "## Sorting `kubectl` Output\n\nThe `--sort-by` flag on `kubectl get` allows you to sort output by any JSONPath expression — extremely useful for finding the newest pod, the heaviest resource consumer, or the oldest event.\n\n**Your task:**\n\nSeveral pods have been created for you. Complete the following:\n\n1. List all pods in the `default` namespace **sorted by their creation timestamp** (oldest first) and save the output to `/tmp/pods-sorted.txt`\n2. List all pods sorted by name and save to `/tmp/pods-by-name.txt`\n\n```bash\n# Sort by creation time:\nkubectl get pods --sort-by=.metadata.creationTimestamp\n\n# Sort by name:\nkubectl get pods --sort-by=.metadata.name\n```",
+  "hints": [
+    {
+      "title": "--sort-by flag syntax",
+      "body": "Pass any JSONPath expression to --sort-by. The expression must point to a comparable field (string, number, or timestamp).",
+      "command": "kubectl get pods --sort-by=.metadata.creationTimestamp"
+    },
+    {
+      "title": "Save output to a file",
+      "body": "Redirect kubectl output using the > operator.",
+      "command": "kubectl get pods --sort-by=.metadata.creationTimestamp > /tmp/pods-sorted.txt && kubectl get pods --sort-by=.metadata.name > /tmp/pods-by-name.txt"
+    }
+  ],
+  "setup_commands": [
+    {
+      "command": "kubectl run sort-pod-c --image=nginx:alpine 2>/dev/null || true && sleep 1"
+    },
+    {
+      "command": "kubectl run sort-pod-b --image=nginx:alpine 2>/dev/null || true && sleep 0.5"
+    },
+    {
+      "command": "kubectl run sort-pod-a --image=nginx:alpine 2>/dev/null || true && sleep 0.5"
+    }
+  ],
+  "validation": {
+    "commands": [
+      {
+        "description": "File /tmp/pods-sorted.txt exists and contains pod output",
+        "command": "cat /tmp/pods-sorted.txt",
+        "expected_output": "sort-pod",
+        "match": "contains"
+      },
+      {
+        "description": "File /tmp/pods-by-name.txt exists and contains pod output",
+        "command": "cat /tmp/pods-by-name.txt",
+        "expected_output": "sort-pod",
+        "match": "contains"
+      },
+      {
+        "description": "pods-by-name.txt is sorted alphabetically (sort-pod-a appears before sort-pod-c)",
+        "command": "grep -n 'sort-pod-a' /tmp/pods-by-name.txt | cut -d: -f1",
+        "expected_output": "^[0-9]+$",
+        "match": "regex"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl delete pod sort-pod-a sort-pod-b sort-pod-c --ignore-not-found --grace-period=0 --force"
+    },
+    {
+      "command": "rm -f /tmp/pods-sorted.txt /tmp/pods-by-name.txt"
+    }
+  ]
+}

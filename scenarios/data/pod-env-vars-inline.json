@@ -1,0 +1,50 @@
+{
+  "id": "pod-env-vars-inline",
+  "title": "Pod with Inline Environment Variables",
+  "category": "Configuration",
+  "difficulty": "Easy",
+  "type": "task",
+  "weight": 4,
+  "description": "## Pod with Inline Environment Variables\n\nContainers can receive configuration through environment variables from three sources:\n1. **Inline literals** — hardcoded directly in the pod spec (`env[].value`)\n2. **ConfigMap** — loaded from a ConfigMap key\n3. **Secret** — loaded from a Secret key\n\nThis scenario focuses on source **#1**: setting environment variables directly in the pod spec.\n\n**Your task:**\n\nCreate a Pod named `env-demo` using image `busybox:1.36` with command `sleep 3600` and the following environment variables set **inline** (not from a ConfigMap or Secret):\n\n| Name | Value |\n|---|---|\n| `APP_COLOR` | `blue` |\n| `APP_MODE` | `production` |\n\n```bash\n# Verify the env vars are set inside the container:\nkubectl exec env-demo -- env | grep APP_\n```",
+  "hints": [
+    {
+      "title": "Setting env vars with kubectl run",
+      "body": "The quickest way: use `kubectl run` with one `--env` flag per variable.",
+      "command": "kubectl run env-demo --image=busybox:1.36 --command --env=APP_COLOR=blue --env=APP_MODE=production -- sleep 3600"
+    },
+    {
+      "title": "Setting env vars in a manifest",
+      "body": "In a YAML manifest, use the `env` array under the container spec. Each entry has a `name` and `value` field.",
+      "command": "cat <<EOF | kubectl apply -f -\napiVersion: v1\nkind: Pod\nmetadata:\n  name: env-demo\nspec:\n  containers:\n  - name: app\n    image: busybox:1.36\n    command: [\"sleep\", \"3600\"]\n    env:\n    - name: APP_COLOR\n      value: \"blue\"\n    - name: APP_MODE\n      value: \"production\"\nEOF"
+    }
+  ],
+  "setup_commands": [],
+  "validation": {
+    "commands": [
+      {
+        "description": "Pod 'env-demo' is Running",
+        "command": "kubectl get pod env-demo -o jsonpath='{.status.phase}'",
+        "expected_output": "Running",
+        "match": "exact"
+      },
+      {
+        "description": "APP_COLOR is set to 'blue'",
+        "command": "kubectl get pod env-demo -o jsonpath='{.spec.containers[0].env[?(@.name==\"APP_COLOR\")].value}'",
+        "expected_output": "blue",
+        "match": "exact"
+      },
+      {
+        "description": "APP_MODE is set to 'production'",
+        "command": "kubectl get pod env-demo -o jsonpath='{.spec.containers[0].env[?(@.name==\"APP_MODE\")].value}'",
+        "expected_output": "production",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl delete pod env-demo --ignore-not-found --grace-period=0 --force"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "deployment-strategy-mcq",
+  "title": "Deployment Update Strategies",
+  "category": "Workloads",
+  "difficulty": "Medium",
+  "type": "mcq",
+  "weight": 3,
+  "description": "## Deployment Update Strategies\n\nA production Deployment is being updated. The team requires that **at least 3 pods are always available** during the rollout, and at most **5 pods can exist at any one time** (the Deployment has 4 replicas).\n\nWhich `strategy` configuration achieves this?\n\n```yaml\nspec:\n  replicas: 4\n  strategy:\n    type: RollingUpdate\n    rollingUpdate:\n      maxUnavailable: ???\n      maxSurge: ???\n```",
+  "options": [
+    {
+      "id": "a",
+      "text": "`maxUnavailable: 1`, `maxSurge: 1` — at most 1 pod unavailable (3 always up), at most 5 pods total"
+    },
+    {
+      "id": "b",
+      "text": "`maxUnavailable: 0`, `maxSurge: 0` — ensures zero disruption with no extra pods"
+    },
+    {
+      "id": "c",
+      "text": "`maxUnavailable: 2`, `maxSurge: 2` — allows 2 pods down (2 available) and 6 total pods"
+    },
+    {
+      "id": "d",
+      "text": "`maxUnavailable: 4`, `maxSurge: 1` — replaces all pods at once before adding new ones"
+    }
+  ],
+  "correct_option": "a",
+  "explanation": "With 4 replicas, `maxUnavailable: 1` means at most 1 pod can be unavailable → minimum 3 pods always running. `maxSurge: 1` means at most 1 extra pod can be created → maximum 5 pods total (4+1). This satisfies both constraints. Option B (`maxUnavailable: 0, maxSurge: 0`) is invalid — at least one of them must be non-zero. Option C allows only 2 available pods (violates the minimum-3 requirement). Option D would take all existing pods offline before any new ones are ready.",
+  "hints": [
+    {
+      "title": "Understanding maxUnavailable and maxSurge",
+      "body": "maxUnavailable: how many pods can be unavailable during an update (can be a count or %). maxSurge: how many extra pods above the desired count can exist simultaneously.",
+      "command": "kubectl explain deployment.spec.strategy.rollingUpdate"
+    },
+    {
+      "title": "Check the current strategy on a deployment",
+      "body": "Use jsonpath to inspect the rolling update config of any existing deployment.",
+      "command": "kubectl get deployment <name> -o jsonpath='{.spec.strategy.rollingUpdate}'"
+    }
+  ],
+  "setup_commands": [],
+  "default_namespace": "default",
+  "teardown_commands": []
+}

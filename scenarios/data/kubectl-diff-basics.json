@@ -1,0 +1,65 @@
+{
+  "id": "kubectl-diff-basics",
+  "title": "Previewing Changes with kubectl diff",
+  "category": "Core Concepts",
+  "difficulty": "Medium",
+  "type": "task",
+  "weight": 4,
+  "description": "## Previewing Changes with `kubectl diff`\n\n`kubectl diff` compares a local manifest file against the **live state** of a resource in the cluster, showing exactly what would change if you applied it — without actually making any changes. This is a safe way to review updates before rolling them out.\n\n**Your task:**\n\nA Deployment named `diffme` is running with 1 replica and image `nginx:1.24`.\n\n1. Write a updated manifest for the same Deployment with **3 replicas** and image `nginx:1.25` to `/tmp/diffme-updated.yaml`\n2. Run `kubectl diff` against it to preview the changes\n3. Then **apply** the updated manifest to make the changes live\n\n```bash\n# Preview changes:\nkubectl diff -f /tmp/diffme-updated.yaml\n\n# Apply changes:\nkubectl apply -f /tmp/diffme-updated.yaml\n```",
+  "hints": [
+    {
+      "title": "Write the updated manifest",
+      "body": "Create a YAML file with the updated replicas and image values.",
+      "command": "cat <<EOF > /tmp/diffme-updated.yaml\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: diffme\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: diffme\n  template:\n    metadata:\n      labels:\n        app: diffme\n    spec:\n      containers:\n      - name: app\n        image: nginx:1.25\nEOF"
+    },
+    {
+      "title": "Run kubectl diff",
+      "body": "kubectl diff exits with code 1 if there are differences (expected), code 0 if nothing changed.",
+      "command": "kubectl diff -f /tmp/diffme-updated.yaml; echo \"Exit code: $?\""
+    },
+    {
+      "title": "Apply the manifest",
+      "body": "Once you have reviewed the diff output, apply the manifest to update the live cluster state.",
+      "command": "kubectl apply -f /tmp/diffme-updated.yaml"
+    }
+  ],
+  "setup_commands": [
+    {
+      "command": "kubectl create deployment diffme --image=nginx:1.24 --replicas=1 2>/dev/null || true"
+    },
+    {
+      "command": "kubectl rollout status deployment/diffme --timeout=60s"
+    }
+  ],
+  "validation": {
+    "commands": [
+      {
+        "description": "Deployment 'diffme' has 3 replicas",
+        "command": "kubectl get deployment diffme -o jsonpath='{.spec.replicas}'",
+        "expected_output": "3",
+        "match": "exact"
+      },
+      {
+        "description": "Deployment uses nginx:1.25 image",
+        "command": "kubectl get deployment diffme -o jsonpath='{.spec.template.spec.containers[0].image}'",
+        "expected_output": "nginx:1.25",
+        "match": "exact"
+      },
+      {
+        "description": "Manifest file exists at /tmp/diffme-updated.yaml",
+        "command": "test -f /tmp/diffme-updated.yaml && echo 'exists'",
+        "expected_output": "exists",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl delete deployment diffme --ignore-not-found"
+    },
+    {
+      "command": "rm -f /tmp/diffme-updated.yaml"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "kubectl-explain-basics",
+  "title": "Exploring the API with kubectl explain",
+  "category": "Core Concepts",
+  "difficulty": "Easy",
+  "type": "task",
+  "weight": 3,
+  "description": "## Exploring the API with `kubectl explain`\n\n`kubectl explain` is a built-in reference tool that describes the fields of any Kubernetes resource — directly from the live API server. It is invaluable during exams when you need to recall the exact field name or understand what a field accepts.\n\n**Your task:**\n\nA ConfigMap has been created for you. Use `kubectl explain` to answer the following, then:\n\n1. Create a Pod named `explain-demo` using image `nginx:alpine`\n2. Set the pod's `spec.terminationGracePeriodSeconds` to **5** (use `kubectl explain pod.spec.terminationGracePeriodSeconds` to understand the field)\n\n```bash\n# Explore the pod spec:\nkubectl explain pod.spec\n\n# Inspect a specific field:\nkubectl explain pod.spec.terminationGracePeriodSeconds\n```",
+  "hints": [
+    {
+      "title": "kubectl explain syntax",
+      "body": "Use dot-notation to drill into nested fields. For example: `kubectl explain pod.spec.containers.resources`.",
+      "command": "kubectl explain pod.spec.terminationGracePeriodSeconds"
+    },
+    {
+      "title": "Create the pod with the field set",
+      "body": "Use a heredoc to pipe a YAML manifest with terminationGracePeriodSeconds set to 5 directly to kubectl apply.",
+      "command": "cat <<EOF | kubectl apply -f -\napiVersion: v1\nkind: Pod\nmetadata:\n  name: explain-demo\nspec:\n  terminationGracePeriodSeconds: 5\n  containers:\n  - name: app\n    image: nginx:alpine\nEOF"
+    }
+  ],
+  "setup_commands": [],
+  "validation": {
+    "commands": [
+      {
+        "description": "Pod 'explain-demo' exists",
+        "command": "kubectl get pod explain-demo -o jsonpath='{.metadata.name}'",
+        "expected_output": "explain-demo",
+        "match": "exact"
+      },
+      {
+        "description": "Pod uses nginx:alpine image",
+        "command": "kubectl get pod explain-demo -o jsonpath='{.spec.containers[0].image}'",
+        "expected_output": "nginx:alpine",
+        "match": "exact"
+      },
+      {
+        "description": "terminationGracePeriodSeconds is 5",
+        "command": "kubectl get pod explain-demo -o jsonpath='{.spec.terminationGracePeriodSeconds}'",
+        "expected_output": "5",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl delete pod explain-demo --ignore-not-found --grace-period=0 --force"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "pod-node-assignment-mcq",
+  "title": "Assigning Pods to Nodes",
+  "category": "Scheduling",
+  "difficulty": "Medium",
+  "type": "mcq",
+  "weight": 3,
+  "description": "## Assigning Pods to Nodes\n\nA data-processing Pod **must** run on a specific node named `worker-gpu` that has GPU resources. You want to ensure the Pod is **always** scheduled on that exact node — regardless of node labels.\n\nWhich field in the Pod spec achieves this most directly?",
+  "options": [
+    {
+      "id": "a",
+      "text": "`spec.nodeSelector: {kubernetes.io/hostname: worker-gpu}` — schedules on nodes matching the label"
+    },
+    {
+      "id": "b",
+      "text": "`spec.nodeName: worker-gpu` — directly assigns the Pod to the named node, bypassing the scheduler"
+    },
+    {
+      "id": "c",
+      "text": "`spec.affinity.nodeAffinity` with `requiredDuringSchedulingIgnoredDuringExecution` targeting the node name"
+    },
+    {
+      "id": "d",
+      "text": "`spec.tolerations` with a toleration matching the node's taint"
+    }
+  ],
+  "correct_option": "b",
+  "explanation": "`spec.nodeName` is the most direct method — the Pod is **directly bound** to the named node, bypassing the Kubernetes scheduler entirely. The pod will only run on that node and will stay in `Pending` if that node is unavailable. `nodeSelector` requires the node to have a matching label (e.g., `kubernetes.io/hostname` is auto-assigned, so option A would also work, but is less direct). `nodeAffinity` is more flexible and preferred for production. `tolerations` allow pods to be scheduled on tainted nodes but do not restrict them to a specific node.",
+  "hints": [
+    {
+      "title": "nodeName vs nodeSelector",
+      "body": "nodeName bypasses the scheduler and pins the pod to a named node. nodeSelector uses labels for a more flexible approach. For production, prefer nodeAffinity.",
+      "command": "kubectl explain pod.spec.nodeName"
+    },
+    {
+      "title": "Get the node's auto-assigned hostname label",
+      "body": "The kubernetes.io/hostname label is automatically set on every node and matches the node name.",
+      "command": "kubectl get nodes --show-labels"
+    }
+  ],
+  "setup_commands": [],
+  "default_namespace": "default",
+  "teardown_commands": []
+}

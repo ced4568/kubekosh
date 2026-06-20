@@ -1,0 +1,51 @@
+{
+  "id": "kubectl-patch-basics",
+  "title": "Patching Resources with kubectl patch",
+  "category": "Core Concepts",
+  "difficulty": "Medium",
+  "type": "task",
+  "weight": 5,
+  "description": "## Patching Resources with `kubectl patch`\n\n`kubectl patch` lets you surgically update specific fields of a live resource without editing the full manifest. It supports three patch strategies: `merge`, `json`, and `strategic`.\n\n**Your task:**\n\nA Deployment named `patchme` is running in the `default` namespace with 1 replica.\n\n1. Use `kubectl patch` to update its replica count to **3**\n2. Use `kubectl patch` to add a label `env=staging` to the Deployment's **pod template** (`.spec.template.metadata.labels`)\n\n```bash\n# Verify:\nkubectl get deploy patchme -o jsonpath='{.spec.replicas}'\nkubectl get deploy patchme -o jsonpath='{.spec.template.metadata.labels}'  \n```",
+  "hints": [
+    {
+      "title": "Patch replicas using merge patch",
+      "body": "Use `--type=merge` with a JSON snippet targeting the field you want to change.",
+      "command": "kubectl patch deployment patchme --type=merge -p '{\"spec\":{\"replicas\":3}}'"
+    },
+    {
+      "title": "Patch pod template labels",
+      "body": "To add labels to the pod template, target spec.template.metadata.labels in your patch body.",
+      "command": "kubectl patch deployment patchme --type=merge -p '{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"env\":\"staging\"}}}}}'"
+    }
+  ],
+  "setup_commands": [
+    {
+      "command": "kubectl create deployment patchme --image=nginx:alpine --replicas=1 2>/dev/null || true"
+    },
+    {
+      "command": "kubectl rollout status deployment/patchme --timeout=60s"
+    }
+  ],
+  "validation": {
+    "commands": [
+      {
+        "description": "Deployment 'patchme' has 3 replicas",
+        "command": "kubectl get deployment patchme -o jsonpath='{.spec.replicas}'",
+        "expected_output": "3",
+        "match": "exact"
+      },
+      {
+        "description": "Pod template has label env=staging",
+        "command": "kubectl get deployment patchme -o jsonpath='{.spec.template.metadata.labels.env}'",
+        "expected_output": "staging",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "default",
+  "teardown_commands": [
+    {
+      "command": "kubectl delete deployment patchme --ignore-not-found"
+    }
+  ]
+}

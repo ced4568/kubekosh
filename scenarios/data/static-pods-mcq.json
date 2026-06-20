@@ -1,0 +1,44 @@
+{
+  "id": "static-pods-mcq",
+  "title": "Static Pods in Kubernetes",
+  "category": "Core Concepts",
+  "difficulty": "Medium",
+  "type": "mcq",
+  "weight": 3,
+  "description": "## Static Pods in Kubernetes\n\nA cluster administrator wants to run a monitoring agent on every node without relying on the Kubernetes scheduler or API server. The agent must start automatically even if the API server is unavailable.\n\nWhich approach should they use, and where should the manifest be placed?",
+  "options": [
+    {
+      "id": "a",
+      "text": "Create a DaemonSet — the scheduler places one pod per node automatically"
+    },
+    {
+      "id": "b",
+      "text": "Create a Static Pod by placing a manifest in the kubelet's static pod directory (typically `/etc/kubernetes/manifests/`)"
+    },
+    {
+      "id": "c",
+      "text": "Use a CronJob with `--concurrencyPolicy=Forbid` to schedule one pod per node"
+    },
+    {
+      "id": "d",
+      "text": "Annotate a Deployment with `node-placement: static` to pin it to every node"
+    }
+  ],
+  "correct_option": "b",
+  "explanation": "Static Pods are managed directly by the kubelet daemon on a specific node, **without the API server scheduling them**. The kubelet watches a directory (e.g., `/etc/kubernetes/manifests/`) and automatically creates any pods defined there — even if the API server is down. They are ideal for bootstrapping control-plane components (etcd, kube-apiserver, etc.) and for workloads that must survive API server failures. DaemonSets are managed by the scheduler/API server and won't work if the API server is unavailable. There is no `node-placement: static` annotation.",
+  "hints": [
+    {
+      "title": "What makes a pod 'static'?",
+      "body": "Static pods are defined as YAML files on the node's filesystem. The kubelet monitors the staticPodPath directory and reconciles the pods itself — no scheduler, no API server required.",
+      "command": "ls /etc/kubernetes/manifests/ 2>/dev/null || echo 'Static pod dir may differ per distro'"
+    },
+    {
+      "title": "Identifying static pods in the cluster",
+      "body": "Static pods always have the node name appended to their pod name (e.g., `kube-apiserver-controlplane`). You can also look at the pod's ownerReferences — static pods have no ownerReference.",
+      "command": "kubectl get pods -n kube-system"
+    }
+  ],
+  "setup_commands": [],
+  "default_namespace": "default",
+  "teardown_commands": []
+}

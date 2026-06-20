@@ -36,6 +36,16 @@
     "annotate-resource-basics",
     "init-container-task-basics",
     "restart-policy-mcq",
-    "kubectl-output-format-mcq"
+    "kubectl-output-format-mcq",
+    "kubectl-explain-basics",
+    "kubectl-patch-basics",
+    "field-selector-basics",
+    "sort-by-basics",
+    "kubectl-diff-basics",
+    "node-cordon-basics",
+    "static-pods-mcq",
+    "deployment-strategy-mcq",
+    "pod-node-assignment-mcq",
+    "pod-env-vars-inline"
   ]
 }
