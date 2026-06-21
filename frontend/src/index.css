@@ -2,17 +2,17 @@
 
 /* ── Dark theme (default) ────────────────────────────────────────────────── */
 :root {
-  --bg:         #0c0f14;
-  --surface:    #131720;
-  --surface2:   #1a2030;
-  --surface3:   #212840;
-  --border:     #252d42;
-  --border2:    #2e3a55;
+  --bg:         #0D1117;
+  --surface:    #161B22;
+  --surface2:   #1C232E;
+  --surface3:   #232C3A;
+  --border:     #21262D;
+  --border2:    #30363D;
 
-  --green:      #39d98a;
-  --green-dim:  rgba(57,217,138,0.12);
-  --blue:       #4dabf7;
-  --blue-dim:   rgba(77,171,247,0.10);
+  --green:      #39FF14;
+  --green-dim:  rgba(57,255,20,0.12);
+  --blue:       #00D4FF;
+  --blue-dim:   rgba(0,212,255,0.10);
   --amber:      #fcc419;
   --amber-dim:  rgba(252,196,25,0.10);
   --red:        #ff6b6b;
@@ -22,9 +22,9 @@
   --teal:       #2dd4bf;
   --teal-dim:   rgba(45,212,191,0.11);
 
-  --text:       #e2e8f4;
-  --text-2:     #8899b8;
-  --text-3:     #4d5f80;
+  --text:       #E6EDF3;
+  --text-2:     #8B949E;
+  --text-3:     #586069;
 
   --mono:       'IBM Plex Mono', monospace;
   --sans:       'Epilogue', sans-serif;

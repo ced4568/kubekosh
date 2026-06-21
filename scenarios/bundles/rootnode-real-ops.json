@@ -1,0 +1,13 @@
+{
+  "id": "rootnode-real-ops",
+  "name": "RootNode: Real Ops",
+  "icon": "🌳",
+  "tagline": "Real-world cluster failures, drawn from a working homelab NOC.",
+  "color": "#39FF14",
+  "colorDim": "rgba(57,255,20,0.12)",
+  "exam_minutes": 60,
+  "scenario_ids": [
+    "rootnode-runaway-monitor",
+    "broken-deployment"
+  ]
+}

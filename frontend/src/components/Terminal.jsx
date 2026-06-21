@@ -147,7 +147,7 @@ export default function TerminalComponent({ collapsed, onToggleCollapse }) {
           </div>
           <span className={styles.barTitle}>
             <span className={styles.barIcon}>$_</span>
-            bash — kubekosh
+            bash — rootnode
           </span>
         </div>
         <div className={styles.barRight}>

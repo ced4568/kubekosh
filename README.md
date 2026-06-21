@@ -1,28 +1,41 @@
 <div align="center">
-  <img src="frontend/public/logo.svg" alt="KubeKosh Logo" width="100" />
 
-  <h1>KubeKosh</h1>
+<img src="frontend/public/logo.svg" alt="KubeKosh" height="96" />
 
-  <p><strong>Self-hosted Kubernetes Lab for Hands-on Learning</strong></p>
+# KubeKosh — RootNode Academy Edition
 
-  <p>
-    <a href="https://hub.docker.com/r/zeborg/kubekosh"><img src="https://img.shields.io/docker/pulls/zeborg/kubekosh?style=flat-square&logo=docker&label=Docker%20Hub" alt="Docker Hub" /></a>
-    <img src="https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square" alt="License" />
-    <img src="https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-lightgrey?style=flat-square" alt="Platforms" />
-  </p>
+**A browser-based Kubernetes lab for hands-on learners.**
+Real K3s. Real `kubectl`. Instant validation. No cloud account, no local cluster.
+
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-lightgrey?style=flat-square)](#)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-K3s-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://k3s.io)
+[![Docker](https://img.shields.io/badge/Docker-required-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docs.docker.com/get-docker/)
+[![Maintained by ced4568](https://img.shields.io/badge/maintained%20by-ced4568-181717?style=flat-square&logo=github)](https://github.com/ced4568)
+
 </div>
 
 ---
 
-KubeKosh runs a real [K3s](https://k3s.io/) Kubernetes cluster inside a single Docker container and pairs it with a browser-based terminal and automated scenario validation — no cloud account or local cluster required.
+> **Attribution.** This is a branded, modified fork of the excellent
+> [`zeborg/kubekosh`](https://github.com/zeborg/kubekosh), licensed under Apache 2.0.
+> RootNode Academy adds custom scenarios, branding, and multi-student deployment tooling on
+> top of the upstream project. Original copyright and license notices are preserved in
+> [`LICENSE`](LICENSE). Modified files are marked per Apache 2.0 §4. Full credit to
+> the original author for the core platform.
 
-## Screenshots
+---
 
-| | | |
-|---|---|---|
-| ![Scenario browser with live terminal](screenshots/1.png) | ![Task scenario with problem statement](screenshots/2.png) | ![Contextual hints with copy-ready commands](screenshots/3.png) |
-| ![Automated validation — all checks passed](screenshots/4.png) | ![Exam mode — start with custom duration and scenario count](screenshots/5.png) | ![Exam mode — live exam with timer](screenshots/6.png) |
-| ![Exam MCQ — selecting an answer](screenshots/7.png) | ![Exam MCQ — correct answer with explanation](screenshots/8.png) | ![Exam history with per-scenario score report](screenshots/9.png) |
+## What It Is
+
+KubeKosh runs a real single-node [K3s](https://k3s.io) cluster inside one Docker
+container and pairs it with a browser terminal and automated scenario validation.
+A learner opens a tab, gets a live cluster, runs real `kubectl`, and clicks **Validate**
+to check their work against actual cluster state.
+
+In the RootNode Academy curriculum this is the **capstone rung** — the Kubernetes & DevOps
+track that sits on top of the Linux / Git / Docker foundations. It is aimed at the
+advanced learner (roughly 14+), not the absolute beginner.
 
 ---
 
@@ -31,23 +44,25 @@ KubeKosh runs a real [K3s](https://k3s.io/) Kubernetes cluster inside a single D
 **Prerequisite:** [Docker](https://docs.docker.com/get-docker/)
 
 ```bash
-docker run -itd --name kubekosh --privileged -p 7554:80 zeborg/kubekosh:latest
+docker run -itd --name kubekosh --privileged -p 7554:80 ced4568/kubekosh:latest
 ```
 
-Open **http://localhost:7554** — wait ~30 seconds for the *Cluster Ready* indicator to turn green.
+Open **http://localhost:7554** and wait ~30s for the *Cluster Ready* indicator to turn green.
 
-> `--privileged` is required — K3s needs access to kernel namespaces and cgroups.
-
-> **Security Warning:** Do **not** expose this container publicly. Use it only on your local machine as it is meant for educational purposes only.
+> `--privileged` is required — K3s needs kernel namespaces and cgroups.
+> **Do not expose this container directly to the public internet.** It is a teaching
+> sandbox. Multi-student exposure is handled by the deployment layer below, not by
+> publishing the raw container.
 
 ### Persist Progress
 
 ```bash
 docker run -itd --name kubekosh --privileged -p 7554:80 \
-  -v <your_custom_directory>:/data zeborg/kubekosh:latest
+  -v <host_dir>:/data ced4568/kubekosh:latest
 ```
 
-Progress is stored in SQLite at `/data/progress.db` inside the container. Mount a local directory to `/data` to keep progress across container restarts.
+Progress is stored in SQLite at `/data/progress.db`. Mount a host directory to `/data`
+to keep progress across restarts — one volume per student.
 
 ### Build From Source
 
@@ -62,53 +77,72 @@ docker buildx build --platform linux/amd64,linux/arm64 -t kubekosh .
 ## What's Inside
 
 | Bundle | Focus | Exam Mode |
-|---|---|---|
+| ------ | ----- | --------- |
 | 🌱 Kubernetes Basics | Core concepts | 60 min |
 | 🧑‍✈️ Kubernetes Administrator | CKA | 120 min |
 | 🛠️ Kubernetes Developer | CKAD | 120 min |
 | 🛡️ Kubernetes Security | CKS | 120 min |
 
-**Scenario types:**
-- **Task** — Hands-on challenge in the live terminal. Click **Validate** for automated cluster-state checking.
-- **MCQ** — Multiple-choice question with a detailed explanation on submission.
+**Scenario types**
 
-### Shell Aliases
+- **Task** — hands-on challenge in the live terminal; **Validate** auto-checks cluster state.
+- **MCQ** — multiple choice with a detailed explanation on submission.
 
-The terminal comes pre-configured with:
-
-| Alias | Expands to |
-|---|---|
-| `k` | `kubectl` |
-| `kg` | `kubectl get` |
-| `kd` | `kubectl describe` |
-| `krm` | `kubectl delete` |
-| `kgp` | `kubectl get pods` |
-| `kga` | `kubectl get pods --all-namespaces` |
-| `kgd` | `kubectl get deployments` |
-| `kgs` | `kubectl get services` |
-| `kgn` | `kubectl get nodes` |
-| `kgns` | `kubectl get namespaces` |
-| `kdp` | `kubectl describe pod` |
-| `kaf` | `kubectl apply -f` |
-| `kdf` | `kubectl delete -f` |
-| `kex` | `kubectl exec -it` |
-| `klogs` | `kubectl logs` |
-| `kns <ns>` | `kubectl config set-context --current --namespace=<ns>` |
-| `kctx <ctx>` | `kubectl config use-context <ctx>` |
+Custom RootNode Academy scenarios live alongside upstream ones in `scenarios/data/` and are
+grouped into bundles in `scenarios/bundles/`. See [`scenarios/SCHEMA.md`](scenarios/SCHEMA.md).
 
 ---
 
 ## Architecture
 
-| Component | Technology |
-|---|---|
-| Frontend | React + Vite, `xterm.js` |
-| Backend | Node.js / Express, `node-pty` WebSocket PTY |
-| Cluster | K3s (single-node, in-container) |
-| Proxy | nginx on container port `80`, mapped to host port `7554` |
-| Storage | SQLite (`better-sqlite3`) at `/data/progress.db` |
+```mermaid
+flowchart TD
+    subgraph Container["Single Docker Image (--privileged)"]
+        NGINX["nginx :80 — reverse proxy"]
+        FE["Frontend<br/>React + Vite + xterm.js"]
+        BE["Backend<br/>Node / Express + node-pty (WebSocket PTY)"]
+        K3S["K3s<br/>single-node in-container cluster"]
+        DB[("SQLite<br/>/data/progress.db")]
 
-Everything runs inside a **single Docker image** managed by `scripts/entrypoint.sh`.
+        NGINX --> FE
+        NGINX --> BE
+        BE -->|kubectl / PTY| K3S
+        BE --> DB
+    end
+
+    Student["Learner browser"] -->|:7554| NGINX
+```
+
+| Component | Technology |
+| --------- | ---------- |
+| Frontend  | React + Vite, `xterm.js` |
+| Backend   | Node.js / Express, `node-pty` WebSocket PTY |
+| Cluster   | K3s (single-node, in-container) |
+| Proxy     | nginx on port `80`, mapped to host `7554` |
+| Storage   | SQLite (`better-sqlite3`) at `/data/progress.db` |
+
+Everything runs inside one image managed by `scripts/entrypoint.sh`.
+
+---
+
+## Multi-Student Deployment (RootNode Academy addition)
+
+The upstream project assumes one learner, one container. RootNode Academy runs it across three
+delivery modes. **Never publish the raw privileged container** — front it with isolation.
+
+| Mode | Provisioning | Isolation |
+| ---- | ------------ | --------- |
+| In-person camp | Pre-spun container per seat, torn down after | Lab VLAN, no public ingress |
+| Live cohort | Container per enrolled student for the session window | Per-student auth at the proxy |
+| Self-paced | On-demand spin-up per session, idle-timeout teardown | Per-user volume + auth + resource limits |
+
+Hardening checklist for shared infra:
+
+- One container **per student** — never share a cluster between learners.
+- Apply CPU/memory limits so one runaway pod can't starve a host.
+- Put authentication in front (proxy-level), never expose `:7554` to the internet.
+- Persist each student's `/data` to a dedicated volume.
+- Idle-timeout + auto-teardown for self-paced sessions to control cost.
 
 ---
 
@@ -116,88 +150,42 @@ Everything runs inside a **single Docker image** managed by `scripts/entrypoint.
 
 ```
 scenarios/
-├── data/             # One JSON file per scenario  -> <scenario-id>.json
-├── bundles/          # One JSON file per bundle    -> <bundle-id>.json
-└── SCHEMA.md         # Full schema reference
+├── data/         # one JSON file per scenario  -> <scenario-id>.json
+├── bundles/      # one JSON file per bundle     -> <bundle-id>.json
+└── SCHEMA.md     # full schema reference
 
-backend/
-└── server.js         # Express API + WebSocket PTY
-
-frontend/
-└── src/              # React + Vite SPA
-
-scripts/
-├── entrypoint.sh     # Container startup (k3s -> API -> nginx)
-└── nginx.conf        # Reverse-proxy config
+backend/  server.js      # Express API + WebSocket PTY
+frontend/ src/           # React + Vite SPA
+scripts/  entrypoint.sh  # container startup (k3s -> API -> nginx)
+          nginx.conf     # reverse-proxy config
 ```
 
 ---
 
-## Contributing
+## Authoring Scenarios
 
-Contributions are what make open-source projects like this one grow — and every contribution counts, big or small. Whether you're fixing a typo, polishing a scenario description, or building a completely new exercise from scratch, you're helping the next person learn Kubernetes in the best way possible. **Thank you for taking the time!**
+Each scenario is one JSON file in `scenarios/data/`; each bundle is one JSON file in
+`scenarios/bundles/`. See [`scenarios/SCHEMA.md`](scenarios/SCHEMA.md) for the full schema.
 
-### Adding Scenarios
+**Task checklist**
+- `validation.commands` — idempotent `kubectl` only
+- `setup_commands` / `teardown_commands` — `kubectl` or native Ubuntu only
 
-Each scenario is a single JSON file in `scenarios/data` directory; each bundle is a single JSON file in `scenarios/bundles` directory. See [`scenarios/SCHEMA.md`](scenarios/SCHEMA.md) for the full schema.
+**MCQ checklist**
+- `correct_option` must match an `options[].id`
+- always include an `explanation`
 
-**Task checklist:**
-- `validation.commands` — idempotent `kubectl` commands only
-- `setup_commands` / `teardown_commands` — `kubectl` or native Ubuntu commands only
-
-**MCQ checklist:**
-- `correct_option` must match one of the `options[].id` values
-- Always include an `explanation`
-
-### In-Memory Cache & Hot Reloading
-
-To ensure high performance and zero disk-I/O bottlenecking, scenarios and bundles are cached in memory on backend startup. When developing or updating scenarios, you can hot-reload the definitions without rebuilding the image or restarting the container:
-
-1. **Mount Scenarios Directory:** Run the container with the local `scenarios/` directory mounted to `/app/scenarios`:
-   ```bash
-   docker run --rm -itd --privileged -p 7554:80 --name kubekosh -v <path_to_scenarios_directory>:/app/scenarios zeborg/kubekosh:latest
-   ```
-2. **Reload Cache:** Click the **Reload Scenario Cache** (↻) button in the top right corner of the header in the web user interface, or send an API request:
-   ```bash
-   curl -X POST http://localhost:7554/api/cache/reload
-   ```
-
-> **NOTE:**
-> The content in `<path_to_scenarios_directory>` should be the path to the local `scenarios/` directory of the cloned repository with your updates, i.e., it should contain the updated `scenarios/data` and `scenarios/bundles` directories.
-
-### Workflow
+Hot-reload while authoring (no rebuild):
 
 ```bash
-# 1. Fork the repo on GitHub, then clone your fork
-git clone https://github.com/<your-username>/kubekosh.git
-cd kubekosh
-
-# 2. Create a branch
-git checkout -b feat/my-scenario
-
-# 3. Add a new scenario file (copy an existing scenario as a template or create a new one)
-cp scenarios/data/deploy-nginx.json scenarios/data/my-new-scenario.json
-vim scenarios/data/my-new-scenario.json # edit the new scenario as per [SCHEMA.md](scenarios/SCHEMA.md)
-
-# 4. Add the scenario ID to the relevant bundle
-vim scenarios/bundles/k8s-basics.json # edit the bundle to include the new scenario ID
-
-# 5. Build and test locally
-# Run the built container directly:
-docker build -t kubekosh . && docker run --rm -itd --privileged -p 7554:80 --name kubekosh kubekosh
-# Or mount the scenarios folder for hot-reloading:
-docker run --rm -itd --privileged -p 7554:80 -v $PWD/scenarios:/app/scenarios --name kubekosh zeborg/kubekosh:dev
-
-# 6. Commit and push to your fork (example for adding `my-new-scenario` to `k8s-basics` bundle)
-git add scenarios/data/my-new-scenario.json scenarios/bundles/k8s-basics.json
-git commit -m "feat: add my-new-scenario to k8s-basics bundle"
-git push -u origin feat/my-new-scenario
+docker run --rm -itd --privileged -p 7554:80 --name kubekosh \
+  -v $PWD/scenarios:/app/scenarios ced4568/kubekosh:latest
+curl -X POST http://localhost:7554/api/cache/reload
 ```
-
-Open a Pull Request from your fork's branch against `main`.
 
 ---
 
 ## License
 
-Apache 2.0 License — see [LICENSE](LICENSE).
+Apache 2.0 — see [`LICENSE`](LICENSE). Original work © the `zeborg/kubekosh` authors.
+Modifications © RootNode Academy / Chase Dumphord (ced4568).

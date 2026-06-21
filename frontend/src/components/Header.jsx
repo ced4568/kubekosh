@@ -98,18 +98,18 @@ export default function Header({ clusterReady, onShowHistory }) {
       <header className={styles.header}>
         <div className={styles.brand}>
           <div className={styles.logo}>
-            <img src="/logo.svg" alt="KubeKosh Logo" className={styles.logoImage} />
-            <span className={styles.logoText}>KubeKosh</span>
+            <img src="/logo.svg" alt="RootNode Academy Logo" className={styles.logoImage} />
+            <span className={styles.logoText}>RootNode Academy</span>
             <span className={styles.version}>{import.meta.env.VITE_APP_VERSION}</span>
           </div>
-          <span className={styles.tagline}>Interactive Kubernetes Playground</span>
+          <span className={styles.tagline}>Build From the Root</span>
         </div>
 
         <div className={styles.right}>
           {/* GitHub link */}
           <div className={styles.githubBtnContainer}>
             <a
-              href="https://github.com/zeborg/kubekosh"
+              href="https://github.com/ced4568/kubekosh"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.githubBtn}

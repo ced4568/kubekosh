@@ -1,0 +1,58 @@
+{
+  "id": "rootnode-runaway-monitor",
+  "title": "Recover the Monitoring Stack",
+  "category": "Observability & Ops",
+  "difficulty": "Medium",
+  "type": "task",
+  "weight": 8,
+  "description": "## Recover the Monitoring Stack\n\nA monitoring agent named `node-metrics` was deployed to the `monitoring` namespace, but its pod never came up. Right now it's stuck **Pending**.\n\nThis is modeled on a real homelab incident: a monitoring component requested far more memory than any node could give it. In production that same class of mistake — an unbounded or oversized monitoring workload — is a classic way to exhaust a node and take the *whole observability stack* down with it.\n\n**Your task:** Diagnose why the pod won't schedule, then **right-size** the resource request so the deployment reaches **1/1 Ready**.\n\n> Important: the goal is to *right-size* the request, not to delete resource governance entirely. A monitoring workload with no requests at all is how you got here in the first place — it should still declare a sane memory request.",
+  "hints": [
+    {
+      "title": "1. See the failure",
+      "body": "List pods in the monitoring namespace. You'll see node-metrics stuck Pending. Describe the pod and read the Events at the bottom — the scheduler tells you exactly why it can't place the pod.",
+      "command": "kubectl get pods -n monitoring\nkubectl describe pod -n monitoring -l app=node-metrics"
+    },
+    {
+      "title": "2. Find the bad request",
+      "body": "A FailedScheduling / Insufficient memory event means the pod is asking for more memory than the node has. Inspect the deployment's resource requests to find the absurd value.",
+      "command": "kubectl get deploy node-metrics -n monitoring -o jsonpath='{.spec.template.spec.containers[0].resources.requests}'"
+    },
+    {
+      "title": "3. Right-size it",
+      "body": "Lower the memory request to something a small node can actually satisfy (for an nginx stand-in, 64Mi is plenty). kubectl set resources patches the live deployment and triggers a new rollout. Keep a request set — just make it sane.",
+      "command": "kubectl set resources deployment node-metrics -n monitoring --requests=memory=64Mi"
+    }
+  ],
+  "setup_commands": [
+    { "command": "kubectl create namespace monitoring" },
+    { "command": "kubectl create deployment node-metrics --image=nginx:1.25 --replicas=1 -n monitoring" },
+    { "command": "kubectl set resources deployment node-metrics -n monitoring --requests=memory=64Gi" }
+  ],
+  "validation": {
+    "description": "Checks that node-metrics is right-sized: scheduled, 1/1 Ready, and still declaring a memory request.",
+    "commands": [
+      {
+        "description": "Deployment 'node-metrics' has 1 ready replica",
+        "command": "kubectl get deployment node-metrics -n monitoring -o jsonpath='{.status.readyReplicas}' 2>/dev/null | grep -v '^$' || echo 0",
+        "expected_output": "1",
+        "match": "exact"
+      },
+      {
+        "description": "No pods left in Pending state",
+        "command": "kubectl get pods -n monitoring --no-headers 2>/dev/null | awk '{print $3}' | grep -c 'Pending' || true",
+        "expected_output": "0",
+        "match": "exact"
+      },
+      {
+        "description": "Container still declares a memory request (governance not removed)",
+        "command": "kubectl get deployment node-metrics -n monitoring -o jsonpath='{.spec.template.spec.containers[0].resources.requests.memory}' 2>/dev/null | grep -c '.' || echo 0",
+        "expected_output": "1",
+        "match": "exact"
+      }
+    ]
+  },
+  "default_namespace": "monitoring",
+  "teardown_commands": [
+    { "command": "kubectl delete namespace monitoring --ignore-not-found --wait=false" }
+  ]
+}
